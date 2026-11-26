@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#f7f3ed"><title>Gentle Music — YouTube Playlist Maker</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+:root{--bg:#f7f3ed;--paper:#fffdf9;--ink:#35433a;--muted:#6e786f;--line:#e4dfd6;--green:#496b56}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,sans-serif}main{max-width:850px;margin:auto;padding:20px 15px 45px}header{text-align:center;padding:20px 8px}h1{font-size:clamp(28px,6vw,42px);line-height:1.12;margin:7px 0}h2{font-size:22px;margin:0 0 8px}h3{font-size:18px;margin:0 0 8px}.muted{color:var(--muted);font-size:14px}.panel{background:var(--paper);border:1px solid var(--line);border-radius:18px;padding:17px;margin:14px 0}.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}input,select{font:inherit;border:1px solid var(--line);background:#fff;border-radius:11px;padding:11px;max-width:100%}label{display:block;font-size:14px;font-weight:650;margin:8px 0 4px}button{font:inherit;font-weight:700;border:0;border-radius:12px;padding:12px 15px;background:var(--green);color:white;cursor:pointer}button.secondary{background:#e5e9df;color:#3d5143}button:disabled{opacity:.45;cursor:not-allowed}.status{padding:11px;border-radius:12px;background:#edf2ec;margin:10px 0;font-size:14px;white-space:pre-wrap}.warn{background:#fff3d9}.playlist{border:1px solid var(--line);border-radius:14px;padding:12px;margin:10px 0}.video{display:grid;grid-template-columns:22px 1fr;gap:9px;padding:8px 0;border-bottom:1px solid var(--line)}.video:last-child{border:0}.video a{color:#315d47;font-weight:650;text-decoration:none}.video small{display:block;color:var(--muted)}details summary{cursor:pointer;font-weight:700}footer{text-align:center;color:var(--muted);font-size:13px;margin-top:25px}
+</style></head><body><main>
+<header><div style="font-size:38px">☀️♫🌙</div><h1>Gentle Music<br>Playlist Maker</h1><p class="muted">Create real playlists in your own YouTube account, with a review step before anything is saved.</p></header>
+<div class="panel warn"><strong>Important:</strong> This connects directly to Google only after you set up your own Google Cloud OAuth Client ID and API key, then approve access. I cannot sign in to your account or receive your credentials for you. Free YouTube playback may still contain ads; this app cannot remove them.</div>
+<details class="panel" open><summary>Step 1 · Connect your Google / YouTube account</summary>
+<p class="muted">One-time setup: in Google Cloud Console, create a project, enable <b>YouTube Data API v3</b>, configure OAuth consent, and create an OAuth client ID for a Web application. Add this page's origin as an authorised JavaScript origin (when hosted), or use a local testing origin/server. Create an API key and restrict it to YouTube Data API v3 and your site.</p>
+<p><a href="https://console.cloud.google.com/" target="_blank" rel="noopener">Open Google Cloud Console ↗</a> · <a href="https://developers.google.com/youtube/v3/guides/authentication" target="_blank" rel="noopener">Google authorization guide ↗</a></p>
+<label for="client">OAuth Client ID (ends in .apps.googleusercontent.com)</label><input id="client" style="width:100%" placeholder="Paste your Web application Client ID">
+<label for="key">YouTube Data API key</label><input id="key" style="width:100%" placeholder="Paste your restricted API key">
+<div class="row" style="margin-top:12px"><button id="connect">Connect YouTube</button><button class="secondary" id="disconnect">Disconnect / clear session</button></div>
+<div id="authstatus" class="status">Not connected. Your credentials stay in this browser session; do not share this HTML with keys filled in.</div>
+</details>
+<section class="panel"><h2>Step 2 · Build this week's playlists</h2>
+<div class="row"><div><label for="week">Week starting</label><input type="date" id="week"></div><div><label for="privacy">Playlist visibility</label><select id="privacy"><option value="unlisted">Unlisted (recommended to review/share)</option><option value="public">Public (community)</option><option value="private">Private</option></select></div></div>
+<p class="muted">Searches YouTube for candidate tracks. Review and tick the exact recordings you want; then create playlists. Song matches can vary, so check versions and suitability.</p>
+<div class="row"><button class="secondary" id="find" disabled>Find this week's music</button><button id="create" disabled>Create selected playlists</button></div>
+<div id="results"></div><div id="output" class="status">Connect first, then find music.</div></section>
+<section class="panel"><h2>Gentle starter search themes</h2><p class="muted">Taiwanese and Mandarin classics, calming Chinese instruments, and soft nature/sleep sounds. Music is individual: choose familiar songs Mum likes, and stop or change music if it causes distress.</p>
+<ul><li>月亮代表我的心 · The Moon Represents My Heart</li><li>甜蜜蜜 · Tian Mi Mi</li><li>望春風 · Spring Breeze</li><li>雨夜花 · Rainy Night Flower</li><li>四季紅 · Four Seasons Red</li><li>綠島小夜曲 · Green Island Serenade</li></ul>
+</section><footer>Gentle Music for Every Day · Community-friendly starter app · API calls are made from your browser to Google.</footer></main>
+<script>
+let tokenClient=null, accessToken=null, groups=[];
+const qsets=[
+ {name:"Morning — Gentle & Familiar",desc:"Morning relaxation, soft piano and Taiwanese/Mandarin familiar songs",queries:["gentle piano relaxing morning instrumental","月亮代表我的心 soft original song","甜蜜蜜 Teresa Teng original","望春風 台語 classic song","birds soft nature morning music"]},
+ {name:"Afternoon — Calm Chinese Music",desc:"Afternoon calm, guzheng/erhu and nostalgic Mandarin songs",queries:["peaceful guzheng instrumental relaxation","雨夜花 台語 song classic","四季紅 台灣歌謠","Chinese bamboo flute peaceful instrumental","Taiwanese oldies gentle classics"]},
+ {name:"Evening — Slow Sleep Sounds",desc:"Low-stimulation, steady sleep ambience. Avoid sudden sounds; preview before use.",queries:["long continuous soft rain sounds sleep no thunder","deep ambient sleep music no sudden changes","ocean waves continuous sleep sound","brown noise 8 hours gentle sleep","slow soft piano sleep instrumental"]}
+];
+const $=id=>document.getElementById(id);
+function setStatus(t){$("authstatus").textContent=t}
+function startOAuth(){let client=$("client").value.trim();if(!client){setStatus("Please enter your OAuth Client ID.");return}
+if(!window.google?.accounts?.oauth2){setStatus("Google sign-in library is still loading. Wait a moment and retry.");return}
+tokenClient=google.accounts.oauth2.initTokenClient({client_id:client,scope:"https://www.googleapis.com/auth/youtube",callback:resp=>{if(resp.error){setStatus("Google authorization failed: "+resp.error);return}accessToken=resp.access_token;$("find").disabled=false;$("create").disabled=false;setStatus("Connected for this browser session. Google access token received; no password is shared with this page.")}});
+tokenClient.requestAccessToken({prompt:"consent"});
+}
+$("connect").onclick=startOAuth;
+$("disconnect").onclick=()=>{if(accessToken&&window.google?.accounts?.oauth2)google.accounts.oauth2.revoke(accessToken,()=>{});accessToken=null;$("find").disabled=true;$("create").disabled=true;$("results").innerHTML="";setStatus("Disconnected.")}
+function monday(d){let x=new Date(d+"T12:00:00");x.setDate(x.getDate()-((x.getDay()+6)%7));return x}
+function labelDate(d){return d.toLocaleDateString(undefined,{month:"short",day:"numeric"})}
+async function ytSearch(query){let key=$("key").value.trim();if(!key)throw Error("Enter API key to search public videos.");let url="https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=5&q="+encodeURIComponent(query)+"&key="+encodeURIComponent(key);let r=await fetch(url);let data=await r.json();if(!r.ok)throw Error(data.error?.message||"Search failed");return data.items||[]}
+$("find").onclick=async()=>{groups=[];$("results").innerHTML="";$("output").textContent="Searching for candidates…";try{let date=monday($("week").value);for(let g=0;g<qsets.length;g++){let group={name:qsets[g].name,items:[]};for(let query of qsets[g].queries){let items=await ytSearch(query);if(items.length){group.items.push({query,video:items[0],checked:true});}}groups.push(group)}
+renderResults();$("output").textContent="Review the candidate recordings below. Uncheck anything unsuitable, then create playlists."}catch(e){$("output").textContent="Could not search: "+e.message+"\nCheck API key, restrictions, API enabled and quota."}};
+function renderResults(){$("results").innerHTML=groups.map((g,gi)=>`<div class="playlist"><h3>${g.name}</h3>${g.items.map((it,ii)=>`<div class="video"><input type="checkbox" checked data-g="${gi}" data-i="${ii}" aria-label="Add ${it.video.snippet.title}"><div><a target="_blank" rel="noopener" href="https://www.youtube.com/watch?v=${it.video.id.videoId}">${escapeHtml(it.video.snippet.title)}</a><small>${escapeHtml(it.video.snippet.channelTitle)} · Search: ${escapeHtml(it.query)}</small></div></div>`).join("")}</div>`).join("")}
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+async function api(path,method,body){let r=await fetch("https://www.googleapis.com/youtube/v3/"+path,{method,headers:{Authorization:"Bearer "+accessToken,"Content-Type":"application/json"},body:body?JSON.stringify(body):undefined});let data=await r.json();if(!r.ok)throw Error(data.error?.message||"YouTube API error");return data}
+$("create").onclick=async()=>{if(!accessToken){$("output").textContent="Connect your YouTube account first.";return}
+let selected=groups.map((g,gi)=>({g,items:g.items.filter((it,ii)=>document.querySelector(`[data-g="${gi}"][data-i="${ii}"]`)?.checked)})).filter(x=>x.items.length);
+if(!selected.length){$("output").textContent="Select at least one video.";return}
+$("output").textContent="Creating playlists and adding selected videos…";let date=monday($("week").value),privacy=$("privacy").value,created=[];
+try{for(let {g,items} of selected){let title=g.name+" · Week of "+labelDate(date);let p=await api("playlists?part=snippet,status","POST",{snippet:{title,description:"Gentle Music for Every Day — community relaxation playlist. Please preview for personal comfort and note YouTube free playback may contain ads.",defaultLanguage:"en"},status:{privacyStatus:privacy}});for(let it of items){await api("playlistItems?part=snippet","POST",{snippet:{playlistId:p.id,resourceId:{kind:"youtube#video",videoId:it.video.id.videoId}}})}created.push("• "+title+"\nhttps://www.youtube.com/playlist?list="+p.id)}
+$("output").textContent="Created successfully:\n\n"+created.join("\n\n")+"\n\nCopy these links to share with your community."}catch(e){$("output").textContent="Partially completed. "+e.message+"\nCreated so far:\n"+created.join("\n\n")}};
+let d=new Date();d.setDate(d.getDate()-((d.getDay()+6)%7));$("week").value=d.toISOString().slice(0,10);
+</script></body></html>
